@@ -1,0 +1,73 @@
+# your_bot_folder/main.py
+import discord
+from discord.ext import commands
+import os
+import asyncio
+
+# Importa as configurações do config.py
+from config import TOKEN, PUNCH_CHANNEL_ID, WEEKLY_REPORT_CHANNEL_ID, ROLE_ID
+
+# Importa a função de setup da base de dados (supondo que exista database.py)
+from database import setup_database
+
+# Define intents necessários
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+intents.reactions = True
+
+# Instância do bot
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"✅ Bot conectado como {bot.user.name} ({bot.user.id})")
+
+    # Configura base de dados
+    setup_database()
+    print("📦 Base de dados configurada.")
+
+    # Carrega cogs
+    if not os.path.exists("cogs"):
+        print("⚠️ Pasta 'cogs' não encontrada. Crie a pasta e coloque os módulos lá.")
+        return
+
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            try:
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+                print(f"✅ Cog {filename[:-3]} carregado.")
+            except Exception as e:
+                print(f"❌ Erro ao carregar cog {filename[:-3]}: {e}")
+
+    # Sincroniza comandos de barra (slash commands)
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ {len(synced)} comandos de barra sincronizados.")
+    except Exception as e:
+        print(f"❌ Erro ao sincronizar comandos de barra: {e}")
+
+    # Aguarda antes de chamar funções específicas de cogs
+    await asyncio.sleep(5)
+    punch_cog = bot.get_cog("PunchCardCog")
+    if punch_cog:
+        await punch_cog.send_or_update_punch_message()
+    else:
+        print("⚠️ Cog 'PunchCardCog' não encontrado.")
+
+# Comando /hello com verificação de cargo
+@bot.tree.command(name="hello", description="Comando de teste com verificação de cargo")
+async def hello(interaction: discord.Interaction):
+    if not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message("Este comando só pode ser usado num servidor.", ephemeral=True)
+        return
+
+    role = discord.utils.get(interaction.user.roles, id=ROLE_ID)
+    if role is None:
+        await interaction.response.send_message("🚫 Não tens permissões para isso.", ephemeral=True)
+    else:
+        await interaction.response.send_message("👋 oi!")
+
+# Executa o bot
+if __name__ == "__main__":
+    bot.run(TOKEN)
