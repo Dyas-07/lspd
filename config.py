@@ -1,30 +1,29 @@
-import discord
+# your_bot_folder/config.py
+
 import os
+import discord
 
-# Substitua 'SEU_TOKEN_DO_BOT' pelo token real do seu bot do Discord.
-# Mantenha o token em segredo e NUNCA o compartilhe publicamente.
-TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+# --- Configurações de Conexão e Banco de Dados ---
+TOKEN = os.getenv('DISCORD_BOT_TOKEN') # Já configurado para variável de ambiente
 
-# ID do canal onde a mensagem de picagem de ponto será afixada.
-# Clique com o botão direito no canal no Discord e selecione "Copiar ID".
-PUNCH_CHANNEL_ID = 1387870298526978231 # Ex: 123456789012345678
-
-# ID do canal onde a lista semanal de horas será enviada.
-WEEKLY_REPORT_CHANNEL_ID = 1387870377144881303 # Ex: 123456789012345679
+# IDs dos Canais (Lidos de variáveis de ambiente)
+# Em seu ambiente local, você pode definir essas variáveis antes de rodar o bot.
+# No Railway, você as adicionará na seção de variáveis de ambiente.
+PUNCH_CHANNEL_ID = int(os.getenv('PUNCH_CHANNEL_ID')) if os.getenv('PUNCH_CHANNEL_ID') else None
+WEEKLY_REPORT_CHANNEL_ID = int(os.getenv('WEEKLY_REPORT_CHANNEL_ID')) if os.getenv('WEEKLY_REPORT_CHANNEL_ID') else None
+PUNCH_LOGS_CHANNEL_ID = int(os.getenv('PUNCH_LOGS_CHANNEL_ID')) if os.getenv('PUNCH_LOGS_CHANNEL_ID') else None
 
 # Nome do arquivo onde o ID da mensagem de picagem de ponto será salvo.
+# Este arquivo é local ao ambiente e não precisa ser uma variável de ambiente.
 PUNCH_MESSAGE_FILE = 'punch_message_id.txt'
 
-# ID do canal onde os logs de picagem de ponto serão enviados.
-# Clique com o botão direito no canal no Discord e selecione "Copiar ID".
-PUNCH_LOGS_CHANNEL_ID = 1387870457268666440 # Ex: 123456789012345680
-
 # Nome do arquivo do banco de dados SQLite
+# Para Railway, é comum que a base de dados seja efêmera ou persistida de outra forma (volumes ou bancos de dados reais).
+# Para SQLite, ele será criado no contêiner do Railway.
 DATABASE_NAME = 'punch_card.db'
 
-ROLE_ID = 1245892923233402881  # Substitui pelo ID do cargo autorizado
-
-# your_bot_folder/config.py
+# ID do Cargo Autorizado
+ROLE_ID = int(os.getenv('ROLE_ID')) if os.getenv('ROLE_ID') else None
 
 
 
