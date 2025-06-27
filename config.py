@@ -47,7 +47,7 @@ BOT_ACTIVITIES = [
     (discord.ActivityType.streaming, "Sofia Bicho", "https://www.twitch.tv/sofialameiras"),
     
     # Live 3: Exemplo de uma live que não tem URL, ou de um parceiro
-    (discord.ActivityType.streaming, "Zuka ZK", "https://m.twitch.tv/hyag0o0"),
+    (discord.ActivityType.streaming, "Zuka ZK", "https://www.twitch.tv/hyag0o0"),
 
     (discord.ActivityType.streaming, "Mika Gomez", "https://www.twitch.tv/laraxcross")
 ]
