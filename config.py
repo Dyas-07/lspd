@@ -54,3 +54,35 @@ BOT_ACTIVITIES = [
 
 # Intervalo em segundos para alternar entre as atividades (se BOT_ACTIVITIES não estiver vazio)
 ACTIVITY_CHANGE_INTERVAL_SECONDS = 30 # 30 segundos
+
+# your_bot_folder/config.py
+import os
+import discord
+
+# ... (suas outras configurações existentes, como TOKEN, PUNCH_CHANNEL_ID, etc.) ...
+
+# --- Configurações do Sistema de Tickets ---
+
+# ID do canal onde a mensagem principal do sistema de tickets será enviada (com o dropdown)
+# Crie um canal dedicado para o comando !setup_tickets ou !ticket_panel
+TICKET_PANEL_CHANNEL_ID = int(os.getenv('TICKET_PANEL_CHANNEL_ID')) if os.getenv('TICKET_PANEL_CHANNEL_ID') else None
+
+# ID do canal onde os transcritos dos tickets fechados serão enviados
+TICKET_TRANSCRIPTS_CHANNEL_ID = int(os.getenv('TICKET_TRANSCRIPTS_CHANNEL_ID')) if os.getenv('TICKET_TRANSCRIPTS_CHANNEL_ID') else None
+
+# ID do cargo que pode fechar tickets (e.g., um cargo de Moderador ou Admin)
+# Se você tiver vários cargos, pode adicionar uma lista, mas por simplicidade, um ID por enquanto.
+TICKET_MODERATOR_ROLE_ID = int(os.getenv('TICKET_MODERATOR_ROLE_ID')) if os.getenv('TICKET_MODERATOR_ROLE_ID') else None
+
+# Nome do arquivo onde o ID da mensagem do painel de tickets será salvo (para persistência)
+TICKET_PANEL_MESSAGE_FILE = 'ticket_panel_message_id.txt'
+
+# Categorias de tickets para o dropdown:
+# Cada tupla: (label no dropdown, descrição no dropdown, emoji, ID da categoria onde o ticket será criado)
+# Os IDs das categorias devem ser obtidos do seu servidor Discord.
+TICKET_CATEGORIES = [
+    ("Reportar Jogador", "Use para relatar violações de regras de jogadores.", "🚨", int(os.getenv('TICKET_CATEGORY_PLAYER_REPORT_ID')) if os.getenv('TICKET_CATEGORY_PLAYER_REPORT_ID') else None),
+    ("Suporte Geral", "Para dúvidas e assistência geral.", "❓", int(os.getenv('TICKET_CATEGORY_GENERAL_SUPPORT_ID')) if os.getenv('TICKET_CATEGORY_GENERAL_SUPPORT_ID') else None),
+    ("Recursos Humanos", "Assuntos de RH, candidaturas, etc.", "👔", int(os.getenv('TICKET_CATEGORY_HR_ID')) if os.getenv('TICKET_CATEGORY_HR_ID') else None),
+    # Adicione mais categorias conforme necessário
+]
