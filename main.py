@@ -15,17 +15,20 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.reactions = True
+intents.presences = True # Adicione esta intent se for usar o status_changer de forma mais robusta
 
 # Bot com prefixo "!"
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# --- COMANDO COM PREFIXO (!hello) ---
+# --- COMANDO COM PREFIXO (!mascote) ---
 @bot.command(name="mascote")
 async def hello(ctx):
     if not isinstance(ctx.author, discord.Member):
         await ctx.send("Este comando só pode ser usado num servidor.")
         return
 
+    # Certifique-se que ROLE_ID está correto em config.py
+    # Ou use @commands.has_role(ROLE_ID) como decorador se preferir
     role = discord.utils.get(ctx.author.roles, id=ROLE_ID)
 
     if role is None:
@@ -57,13 +60,13 @@ async def on_ready():
 
     print('🚀 Todos os cogs foram carregados.')
 
-    # Executa função especial se cog estiver carregado
-    await asyncio.sleep(5)
-    punch_cog = bot.get_cog('PunchCardCog')
-    if punch_cog:
-        await punch_cog.send_or_update_punch_message()
-    else:
-        print("⚠️ Cog 'PunchCardCog' não encontrado.")
+    # REMOVIDO: A chamada para send_or_update_punch_message()
+    # A lógica para re-associar a view de ponto está agora no on_ready do PunchCardCog
+    # E a criação inicial/atualização é feita pelo comando !setuppunch
+
+    print('------') # Linha divisória para melhor legibilidade no log
+    # A tarefa de mudança de atividade do status_changer cog (se estiver a usar)
+    # será iniciada no on_ready desse cog.
 
 # --- Executa o bot ---
 if __name__ == '__main__':
