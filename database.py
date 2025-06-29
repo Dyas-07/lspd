@@ -3,21 +3,19 @@ from datetime import datetime, timedelta
 
 from config import DATABASE_NAME # Importa o nome do banco de dados do config.py
 
-# Conecta-se ao banco de dados SQLite. Se o arquivo não existir, ele será criado.
-# Usa a função `connect` sempre que precisar interagir com o DB para evitar problemas de concorrência.
 def get_db_connection():
     """Retorna uma conexão com o banco de dados."""
     conn = sqlite3.connect(DATABASE_NAME)
-    conn.row_factory = sqlite3.Row # Permite acessar colunas por nome
+    conn.row_factory = sqlite3.Row # Permite acessar colunas por nome (como um dicionário)
     return conn
 
 def setup_database():
     """
-    Cria a tabela 'punches' se ela não existir.
-    Esta tabela armazenará os registros de entrada e saída.
+    Cria as tabelas 'punches' e 'tickets' se elas não existirem.
     """
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        # Tabela para registros de picagem de ponto
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS punches (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +25,7 @@ def setup_database():
                 punch_out_time TEXT
             )
         ''')
-        # NOVO: Criar também a tabela de tickets se ainda não existir (do último contexto)
+        # Tabela para registros de tickets
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tickets (
                 ticket_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,6 +37,9 @@ def setup_database():
             )
         ''')
         conn.commit() # Salva as mudanças no banco de dados.
+    print("DEBUG: Tabelas de banco de dados 'punches' e 'tickets' verificadas/criadas.")
+
+# --- Funções para Picagem de Ponto ---
 
 def record_punch_in(user_id: int, username: str) -> bool:
     """
@@ -52,7 +53,7 @@ def record_punch_in(user_id: int, username: str) -> bool:
         if cursor.fetchone():
             return False # Usuário já está em serviço
 
-        current_time = datetime.now().isoformat()
+        current_time = datetime.now().isoformat() # Armazena em formato ISO 8601
         cursor.execute("INSERT INTO punches (user_id, username, punch_in_time) VALUES (?, ?, ?)",
                        (user_id, username, current_time))
         conn.commit()
@@ -72,7 +73,7 @@ def record_punch_out(user_id: int) -> tuple[bool, timedelta | None]:
 
         if active_punch:
             punch_id, punch_in_time_str = active_punch
-            punch_in_time = datetime.fromisoformat(punch_in_time_str)
+            punch_in_time = datetime.fromisoformat(punch_in_time_str) # Converte de volta para datetime
             current_time = datetime.now().isoformat()
             time_diff = datetime.now() - punch_in_time
             
@@ -89,7 +90,7 @@ def get_punches_for_period(start_time: datetime, end_time: datetime):
     Retorna todos os registros de picagem de ponto dentro de um período específico.
     Ajusta a data de fim para incluir o dia inteiro.
     """
-    # Garante que a end_time inclua todo o último dia
+    # Garante que a end_time inclua todo o último dia (até o último microssegundo)
     adjusted_end_time = end_time.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     with get_db_connection() as conn:
@@ -97,9 +98,9 @@ def get_punches_for_period(start_time: datetime, end_time: datetime):
         cursor.execute("""
             SELECT user_id, username, punch_in_time, punch_out_time
             FROM punches
-            WHERE punch_in_time BETWEEN ? AND ?
-            AND punch_out_time IS NOT NULL
-            ORDER BY punch_in_time ASC
+            WHERE punch_in_time BETWEEN ? AND ?  -- Filtra pela hora de entrada
+            AND punch_out_time IS NOT NULL       -- Apenas registros completos (com entrada e saída)
+            ORDER BY punch_in_time ASC           -- Ordena por hora de entrada
         """, (start_time.isoformat(), adjusted_end_time.isoformat()))
         return cursor.fetchall()
 
@@ -136,10 +137,10 @@ def add_ticket_to_db(channel_id: int, creator_id: int, creator_name: str, catego
         c.execute("INSERT INTO tickets (channel_id, creator_id, creator_name, category, created_at) VALUES (?, ?, ?, ?, ?)",
                   (channel_id, creator_id, creator_name, category, created_at))
         conn.commit()
-        print(f"Ticket {channel_id} (Criador: {creator_name}, Categoria: {category}) adicionado ao DB.")
+        print(f"DEBUG: Ticket {channel_id} (Criador: {creator_name}, Categoria: {category}) adicionado ao DB.")
         return True
     except sqlite3.IntegrityError:
-        print(f"Erro: Ticket para o canal {channel_id} já existe no DB.")
+        print(f"DEBUG: Erro: Ticket para o canal {channel_id} já existe no DB.")
         return False
     finally:
         conn.close()
@@ -149,7 +150,7 @@ def remove_ticket_from_db(channel_id: int):
     c = conn.cursor()
     c.execute("DELETE FROM tickets WHERE channel_id = ?", (channel_id,))
     conn.commit()
-    print(f"Ticket para o canal {channel_id} removido do DB.")
+    print(f"DEBUG: Ticket para o canal {channel_id} removido do DB.")
     conn.close()
 
 def get_all_open_tickets():
