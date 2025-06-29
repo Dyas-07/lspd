@@ -9,27 +9,30 @@ from config import TOKEN, PUNCH_CHANNEL_ID, WEEKLY_REPORT_CHANNEL_ID, ROLE_ID
 # Setup da base de dados
 from database import setup_database
 
-# Intents
+# Intents - Certifique-se de que estas estão ativadas no Discord Developer Portal!
+# MESSAGE_CONTENT é crucial para comandos de prefixo.
+# MEMBERS e PRESENCES são necessários para cogs como status_changer e funcionalidades que interagem com membros.
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.reactions = True
-intents.presences = True # Necessário para o status_changer ver o estado dos membros e para atividades
+intents.presences = True 
 
 # Bot com prefixo "!"
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # --- COMANDO COM PREFIXO (!mascote) ---
-@bot.command(name="mascote")
+@bot.command(name="mascote", help="Exibe a mascote atual da LSPD.")
 async def hello(ctx):
     if not isinstance(ctx.author, discord.Member):
-        await ctx.send("Este comando só pode ser usado num servidor.")
+        await ctx.send("Este comando só pode ser usado num servidor.", ephemeral=True)
         return
 
+    # Tenta obter o cargo pelo ID configurado
     role = discord.utils.get(ctx.author.roles, id=ROLE_ID)
 
     if role is None:
-        await ctx.send("🚫 Não tens permissões para isso.")
+        await ctx.send("🚫 Não tens permissões para isso.", ephemeral=True)
     else:
         await ctx.send("A atual mascote da LSPD é o SKIBIDI ZEKA!")
 
@@ -43,12 +46,14 @@ async def on_ready():
     print('📦 Base de dados configurada.')
 
     # Carrega cogs
-    if not os.path.exists('cogs'):
-        print("⚠️ Pasta 'cogs' não encontrada. Certifique-se de que seus cogs estão na subpasta 'cogs'.")
+    cogs_folder = './cogs'
+    if not os.path.exists(cogs_folder):
+        print(f"⚠️ Pasta '{cogs_folder}' não encontrada. Certifique-se de que seus cogs estão na subpasta 'cogs'.")
         return
 
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and filename not in ['__init__.py', '__pycache__']: # Ignora arquivos de sistema
+    for filename in os.listdir(cogs_folder):
+        # Garante que apenas ficheiros .py válidos sejam carregados (ignora __init__.py e __pycache__)
+        if filename.endswith('.py') and not filename.startswith('__'):
             try:
                 # Carrega a extensão (cog)
                 await bot.load_extension(f'cogs.{filename[:-3]}')
@@ -59,8 +64,10 @@ async def on_ready():
     print('🚀 Todos os cogs foram carregados.')
     print('------') 
 
-    # Se você planeja usar Slash Commands, descomente a linha abaixo após o bot carregar todos os cogs
-    # await bot.tree.sync() # Sincroniza a árvore de comandos de aplicação (slash commands)
+    # IMPORTANTE: Se você planeja usar Slash Commands (comandos de aplicação),
+    # descomente a linha abaixo para sincronizá-los com o Discord.
+    # Isto geralmente é feito APENAS uma vez após grandes mudanças nos slash commands.
+    # await bot.tree.sync() # Sincroniza a árvore de comandos de aplicação
 
 # --- Executa o bot ---
 if __name__ == '__main__':
