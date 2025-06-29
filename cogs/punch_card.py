@@ -129,7 +129,7 @@ class PunchCardCog(commands.Cog):
         Verifica periodicamente por pontos abertos que excederam o limite de tempo
         e os fecha automaticamente.
         """
-        print(f"Verificando pontos abertos para fechamento automático... ({datetime.now().strftime('%H:%M:%S')})")
+        # print(f"Verificando pontos abertos para fechamento automático... ({datetime.now().strftime('%H:%M:%S')})") # Descomente para debug
         open_punches = get_open_punches_for_auto_close()
         current_time = datetime.now()
         
@@ -224,11 +224,8 @@ class PunchCardCog(commands.Cog):
             # Converte as strings de data para objetos datetime
             start_date = datetime.strptime(start_date_str, '%d/%m/%Y')
             end_date = datetime.strptime(end_date_str, '%d/%m/%Y')
-
-            # Ajusta a data de fim para incluir o dia inteiro
-            # Esta lógica já foi incorporada na função get_punches_for_period do database.py
-            # então não precisamos mais do `replace` aqui.
             
+            # A função get_punches_for_period no database.py já ajusta end_date para 23:59:59.
             punches = get_punches_for_period(start_date, end_date)
 
             if not punches:
@@ -241,40 +238,65 @@ class PunchCardCog(commands.Cog):
                 user_id = punch['user_id']
                 username = punch['username']
                 punch_in_time = datetime.fromisoformat(punch['punch_in_time'])
-                punch_out_time = datetime.fromisoformat(punch['punch_out_time']) # punch_out_time sempre existe aqui
+                punch_out_time = datetime.fromisoformat(punch['punch_out_time'])
 
                 duration = punch_out_time - punch_in_time
                 user_total_times.setdefault(user_id, {'username': username, 'total_duration': timedelta(0)})
                 user_total_times[user_id]['total_duration'] += duration
 
-            # Formata a saída
-            report_lines = []
-            report_lines.append(f"**Relatório de Horas de Serviço ({start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')})**\n")
+            # --- CONSTRUÇÃO DA EMBED DO RELATÓRIO ---
+            embed = discord.Embed(
+                title="📊 Relatório de Horas de Serviço (LSPD)",
+                description=f"**Período:** `{start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}`",
+                color=discord.Color.from_rgb(50, 205, 50) # Verde vibrante
+            )
+            embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1260308350776774817/1386713008256061512/Untitled_1024_x_1024_px_4.png") # Logo LSPD
             
-            # Ordena por nome de utilizador para melhor legibilidade
-            sorted_users = sorted(user_total_times.items(), key=lambda item: item[1]['username'].lower())
+            # Ordena os utilizadores pelo tempo total em serviço (do maior para o menor)
+            sorted_users = sorted(user_total_times.items(), key=lambda item: item[1]['total_duration'], reverse=True)
 
-            for user_id, data in sorted_users:
-                username = data['username']
-                total_duration = data['total_duration']
+            # Adiciona os membros como campos da embed
+            if sorted_users:
+                # Cada campo tem um limite de 1024 caracteres. Vamos criar múltiplos campos se necessário.
+                current_field_value = ""
+                field_count = 0
                 
-                total_seconds = int(total_duration.total_seconds())
-                hours, remainder = divmod(total_seconds, 3600)
-                minutes, seconds = divmod(remainder, 60)
-                formatted_total_time = f"{hours}h {minutes}m {seconds}s"
+                for i, (user_id, data) in enumerate(sorted_users):
+                    username = data['username']
+                    total_duration = data['total_duration']
+                    
+                    total_seconds = int(total_duration.total_seconds())
+                    hours, remainder = divmod(total_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    formatted_total_time = f"{hours}h {minutes}m {seconds}s"
+                    
+                    # Linha para o relatório
+                    line = f"**{i+1}. {username}** (`{user_id}`)\nTempo Total: `{formatted_total_time}`"
+                    
+                    if len(current_field_value) + len(line) + 1 > 1024 and current_field_value: # +1 para o '\n'
+                        embed.add_field(name=f"Membros em Serviço (parte {field_count + 1})", value=current_field_value, inline=False)
+                        current_field_value = line
+                        field_count += 1
+                    else:
+                        if current_field_value:
+                            current_field_value += "\n" + line
+                        else:
+                            current_field_value = line
                 
-                report_lines.append(f"• **{username}** (`{user_id}`): `{formatted_total_time}`")
+                # Adiciona o último campo (se não estiver vazio)
+                if current_field_value:
+                    if field_count == 0: # Se tudo coube em um campo
+                         embed.add_field(name="Membros em Serviço", value=current_field_value, inline=False)
+                    else: # Se foram criados múltiplos campos
+                         embed.add_field(name=f"Membros em Serviço (parte {field_count + 1})", value=current_field_value, inline=False)
 
-            # Envia o relatório
-            report_content = "\n".join(report_lines)
-            if len(report_content) > 2000: # Limite de caracteres do Discord
-                # Se o relatório for muito longo, envia como arquivo
-                with open("relatorio_ponto.txt", "w", encoding="utf-8") as f:
-                    f.write(report_content)
-                await ctx.send(file=discord.File("relatorio_ponto.txt"), ephemeral=True)
-                os.remove("relatorio_ponto.txt")
-            else:
-                await ctx.send(report_content, ephemeral=True)
+            embed.set_footer(
+                text="Relatório gerado automaticamente pelo Sistema de Ponto LSPD.",
+                icon_url="https://cdn.discordapp.com/attachments/1387870298526978231/1387874932561547437/IMG_6522.jpg" # Logo "Developed by Dyas"
+            )
+            # --- FIM DA CONSTRUÇÃO DA EMBED ---
+
+            await ctx.send(embed=embed, ephemeral=True)
 
         except ValueError:
             await ctx.send("Formato de data inválido. Use DD/MM/YYYY. Ex: `!relatorio 01/01/2025 31/01/2025`", ephemeral=True)
