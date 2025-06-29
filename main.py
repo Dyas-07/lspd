@@ -15,7 +15,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.reactions = True
-intents.presences = True # Adicione esta intent se for usar o status_changer de forma mais robusta
+intents.presences = True 
 
 # Bot com prefixo "!"
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -27,8 +27,6 @@ async def hello(ctx):
         await ctx.send("Este comando só pode ser usado num servidor.")
         return
 
-    # Certifique-se que ROLE_ID está correto em config.py
-    # Ou use @commands.has_role(ROLE_ID) como decorador se preferir
     role = discord.utils.get(ctx.author.roles, id=ROLE_ID)
 
     if role is None:
@@ -53,20 +51,19 @@ async def on_ready():
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             try:
+                # Carrega a extensão (cog)
                 await bot.load_extension(f'cogs.{filename[:-3]}')
                 print(f'✅ Cog {filename[:-3]} carregado.')
             except Exception as e:
                 print(f'❌ Erro ao carregar cog {filename[:-3]}: {e}')
 
     print('🚀 Todos os cogs foram carregados.')
+    print('------') 
 
-    # REMOVIDO: A chamada para send_or_update_punch_message()
-    # A lógica para re-associar a view de ponto está agora no on_ready do PunchCardCog
-    # E a criação inicial/atualização é feita pelo comando !setuppunch
-
-    print('------') # Linha divisória para melhor legibilidade no log
-    # A tarefa de mudança de atividade do status_changer cog (se estiver a usar)
-    # será iniciada no on_ready desse cog.
+    # Sincroniza a árvore de comandos de aplicação (slash commands) - embora setuppunch seja de prefixo,
+    # isto garante que o bot está totalmente inicializado. Pode ser útil para cogs que usam slash commands.
+    # Esta linha não é estritamente necessária para comandos de prefixo, mas não faz mal.
+    # await bot.tree.sync() # Descomente se estiver a usar ou planeia usar slash commands
 
 # --- Executa o bot ---
 if __name__ == '__main__':
