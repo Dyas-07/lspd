@@ -5,7 +5,7 @@ import asyncio
 import os
 
 # Importa funções do nosso módulo database
-from database import record_punch_in, record_punch_out, get_open_punches_for_auto_close, auto_record_punch_out, get_punches_for_period
+from database import record_punch_in, record_punch_out, get_open_punches_for_auto_close, auto_record_punch_out
 # Importa configurações do nosso módulo config
 from config import PUNCH_CHANNEL_ID, PUNCH_MESSAGE_FILE, PUNCH_LOGS_CHANNEL_ID, ROLE_ID # ROLE_ID ainda pode ser usado se houver outras permissões
 
@@ -74,7 +74,7 @@ class PunchCardCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._punch_message_id = None
-        # O _load_punch_message_id será chamado em on_ready, não aqui no __init__
+        # A tarefa será iniciada no on_ready
 
     async def _load_punch_message_id(self):
         """Carrega o ID da mensagem de picagem de ponto de um arquivo."""
