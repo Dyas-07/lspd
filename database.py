@@ -53,7 +53,7 @@ def record_punch_in(user_id: int, username: str) -> bool:
         if cursor.fetchone():
             return False # Usuário já está em serviço
 
-        current_time = datetime.now().isoformat() # Armazena em formato ISO 8601
+        current_time = datetime.now().isoformat() # Armazena em formato ISO 8601 (YYYY-MM-DDTHH:MM:SS.ffffff)
         cursor.execute("INSERT INTO punches (user_id, username, punch_in_time) VALUES (?, ?, ?)",
                        (user_id, username, current_time))
         conn.commit()
@@ -127,37 +127,33 @@ def auto_record_punch_out(punch_id: int, auto_punch_out_time: datetime):
                        (auto_punch_out_time.isoformat(), punch_id))
         conn.commit()
 
-# --- Funções para o banco de dados de tickets (mantidas do contexto anterior) ---
+# --- Funções para o banco de dados de tickets ---
 
 def add_ticket_to_db(channel_id: int, creator_id: int, creator_name: str, category: str):
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    created_at = datetime.now().isoformat()
-    try:
-        c.execute("INSERT INTO tickets (channel_id, creator_id, creator_name, category, created_at) VALUES (?, ?, ?, ?, ?)",
-                  (channel_id, creator_id, creator_name, category, created_at))
-        conn.commit()
-        print(f"DEBUG: Ticket {channel_id} (Criador: {creator_name}, Categoria: {category}) adicionado ao DB.")
-        return True
-    except sqlite3.IntegrityError:
-        print(f"DEBUG: Erro: Ticket para o canal {channel_id} já existe no DB.")
-        return False
-    finally:
-        conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        created_at = datetime.now().isoformat()
+        try:
+            cursor.execute("INSERT INTO tickets (channel_id, creator_id, creator_name, category, created_at) VALUES (?, ?, ?, ?, ?)",
+                      (channel_id, creator_id, creator_name, category, created_at))
+            conn.commit()
+            print(f"DEBUG: Ticket {channel_id} (Criador: {creator_name}, Categoria: {category}) adicionado ao DB.")
+            return True
+        except sqlite3.IntegrityError:
+            print(f"DEBUG: Erro: Ticket para o canal {channel_id} já existe no DB (UNIQUE constraint failed).")
+            return False
 
 def remove_ticket_from_db(channel_id: int):
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    c.execute("DELETE FROM tickets WHERE channel_id = ?", (channel_id,))
-    conn.commit()
-    print(f"DEBUG: Ticket para o canal {channel_id} removido do DB.")
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM tickets WHERE channel_id = ?", (channel_id,))
+        conn.commit()
+        print(f"DEBUG: Ticket para o canal {channel_id} removido do DB.")
 
 def get_all_open_tickets():
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    c.execute("SELECT channel_id, creator_id, creator_name, category, created_at FROM tickets")
-    tickets = c.fetchall()
-    conn.close()
-    # Retorna uma lista de dicionários para facilitar o acesso
-    return [{'channel_id': t[0], 'creator_id': t[1], 'creator_name': t[2], 'category': t[3], 'created_at': t[4]} for t in tickets]
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT channel_id, creator_id, creator_name, category, created_at FROM tickets")
+        tickets = cursor.fetchall()
+        # Retorna uma lista de dicionários para facilitar o acesso
+        return [{'channel_id': t['channel_id'], 'creator_id': t['creator_id'], 'creator_name': t['creator_name'], 'category': t['category'], 'created_at': t['created_at']} for t in tickets]
