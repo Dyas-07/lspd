@@ -117,7 +117,7 @@ class ReportsCog(commands.Cog):
                 # Linha para o relatório
                 line = f"**{i+1}. {username}** (`{user_id}`)\nTempo Total: `{formatted_total_time}`"
                 
-                # Verifica se a linha atual e o separador excederão o limite do campo
+                # Verifica se a linha atual e o separador excederão o limite do campo (1024 chars)
                 if len(current_field_value) + len(line) + 1 > 1024 and current_field_value: 
                     embed.add_field(name=f"Membros em Serviço (parte {field_count + 1})", value=current_field_value, inline=False)
                     current_field_value = line
@@ -130,7 +130,7 @@ class ReportsCog(commands.Cog):
             
             # Adiciona o último campo (se não estiver vazio)
             if current_field_value:
-                if field_count == 0: # Se tudo coube em um campo
+                if field_count == 0: # Se tudo coube em um único campo
                     embed.add_field(name="Membros em Serviço", value=current_field_value, inline=False)
                 else: # Se foram criados múltiplos campos
                     embed.add_field(name=f"Membros em Serviço (parte {field_count + 1})", value=current_field_value, inline=False)
