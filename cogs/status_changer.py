@@ -1,4 +1,3 @@
-# your_bot_folder/cogs/status_changer.py
 import discord
 from discord.ext import commands, tasks
 import random
@@ -158,16 +157,18 @@ class StatusChangerCog(commands.Cog):
         message = parts[0]
         url = None
         if len(parts) > 1 and (parts[1].startswith("http://") or parts[1].startswith("https://")):
-            message = parts[0]
-            url = parts[1]
+            # Verifica se a última parte é realmente uma URL válida para streaming
+            if chosen_activity_type == discord.ActivityType.streaming:
+                message = parts[0]
+                url = parts[1]
+            else: # Se não é streaming, a URL é parte da mensagem normal
+                message = message_and_url
+                url = None
         elif chosen_activity_type == discord.ActivityType.streaming and len(parts) == 1:
-            # Se é streaming e só tem uma parte, assume que a parte é a URL e pede a mensagem
+            # Se é streaming e só tem uma parte, assumimos que é a URL e a mensagem está vazia ou a URL é a mensagem
+            # Vamos pedir para o utilizador fornecer a mensagem e a URL separadamente
             await ctx.send("Para `streaming`, por favor forneça a mensagem e o URL. Ex: `!setactivity streaming Patrulha https://www.twitch.tv/seu_canal`")
             return
-        elif chosen_activity_type != discord.ActivityType.streaming and len(parts) > 1 and (parts[1].startswith("http://") or parts[1].startswith("https://")):
-             # Se não é streaming mas tem URL, a URL é parte da mensagem
-             message = message_and_url # Recombina
-             url = None # Garante que url seja None se não for streaming
 
         # Se for streaming e não tiver URL, informa o usuário
         if chosen_activity_type == discord.ActivityType.streaming and not url:
